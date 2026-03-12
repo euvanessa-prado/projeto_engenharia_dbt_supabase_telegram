@@ -1,0 +1,63 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Tabelas brutas do banco de dados (fonte original)"
+    schema: public
+    tables:
+      - name: vendas
+        description: "Transacoes de venda realizadas."
+        columns:
+          - name: id_venda
+            description: "PK - ID unico da venda"
+          - name: data_venda
+            description: "Data e hora da venda"
+          - name: id_cliente
+            description: "FK -> clientes.id_cliente"
+          - name: id_produto
+            description: "FK -> produtos.id_produto"
+          - name: canal_venda
+            description: "Canal de venda (ex: ecommerce, loja_fisica)"
+          - name: quantidade
+            description: "Quantidade de itens vendidos"
+          - name: preco_unitario
+            description: "Preco unitario praticado na venda"
+      - name: clientes
+        description: "Cadastro de clientes."
+        columns:
+          - name: id_cliente
+            description: "PK - ID unico do cliente"
+          - name: nome_cliente
+            description: "Nome completo do cliente"
+          - name: estado
+            description: "Estado (UF) do cliente"
+          - name: pais
+            description: "Pais do cliente"
+          - name: data_cadastro
+            description: "Data de cadastro"
+      - name: produtos
+        description: "Catalogo de produtos."
+        columns:
+          - name: id_produto
+            description: "PK - ID unico do produto"
+          - name: nome_produto
+            description: "Nome do produto"
+          - name: categoria
+            description: "Categoria do produto"
+          - name: marca
+            description: "Marca do produto"
+          - name: preco_atual
+            description: "Preco atual de venda"
+          - name: data_criacao
+            description: "Data de criacao do produto"
+      - name: preco_competidores
+        description: "Precos coletados de concorrentes."
+        columns:
+          - name: id_produto
+            description: "FK -> produtos.id_produto"
+          - name: nome_concorrente
+            description: "Nome do concorrente"
+          - name: preco_concorrente
+            description: "Preco praticado pelo concorrente"
+          - name: data_coleta
+            description: "Data e hora da coleta do preco"
