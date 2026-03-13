@@ -1,18 +1,19 @@
 # 🚀 Projeto de Engenharia de Dados: dbt + Supabase
 
-Este projeto implementa uma camada analítica robusta sobre um banco de dados de e-commerce hospedado no **Supabase (PostgreSQL)**, utilizando **dbt Core** para a transformação e modelagem dos dados seguindo a arquitetura **Medalhão (Bronze, Silver e Gold)**.
+Plataforma de inteligência comercial para e-commerce, construída com **dbt Core** + **Supabase (PostgreSQL)** + **Streamlit**, seguindo a arquitetura **Medalhão (Bronze → Silver → Gold)**.
 
 ---
 
-## 🛠️ Tecnologias e Arquitetura
+## 🛠️ Stack Tecnológico
 
-- **Banco de Dados:** PostgreSQL (Supabase)
-- **Transformação:** dbt (Data Build Tool)
-- **Linguagem:** SQL (PostgreSQL Dialect)
-- **Arquitetura de Dados:** Medalhão
-  - **Bronze:** Dados crus (Raw) com limpeza mínima e tipagem básica.
-  - **Silver:** Dados higienizados, enriquecidos e com lógica de negócio intermediária.
-  - **Gold:** Tabelas agregadas e Data Marts prontos para ferramentas de BI.
+| Tecnologia | Uso |
+|---|---|
+| **Supabase (PostgreSQL)** | Banco de dados cloud |
+| **dbt Core** | Transformação e modelagem dos dados |
+| **Streamlit** | Dashboard analítico interativo |
+| **Plotly** | Visualizações e gráficos |
+| **SQLAlchemy + psycopg2** | Conexão Python → PostgreSQL |
+| **Python** | Orquestração e lógica do dashboard |
 
 ---
 
@@ -20,68 +21,86 @@ Este projeto implementa uma camada analítica robusta sobre um banco de dados de
 
 ```text
 projeto_dbt_supabase/
-├── ecommerce/               # Diretório principal do dbt
-│   ├── models/              # Modelos SQL organizados por camadas
-│   │   ├── bronze/          # Camada Bronze (Views)
-│   │   ├── silver/          # Camada Silver (Tabelas)
-│   │   └── gold/            # Camada Gold (Data Marts)
-│   ├── dbt_project.yml      # Configurações globais do dbt
-│   └── _sources.yml         # Definição das tabelas de origem
-├── README.md                # Documentação do projeto
-└── prd.md                   # Requisitos e regras de negócio (PRD)
+├── ecommerce/                   # Projeto dbt
+│   ├── models/
+│   │   ├── bronze/              # Views — espelho das tabelas raw
+│   │   ├── silver/              # Tables — dados limpos e enriquecidos
+│   │   └── gold/                # Tables — Data Marts analíticos
+│   │       ├── sales/
+│   │       ├── customer_success/
+│   │       └── pricing/
+│   └── dbt_project.yml
+├── .llm/
+│   ├── app.py                   # Dashboard Streamlit (3 páginas)
+│   ├── .env                     # Credenciais (não versionado)
+│   └── .env.example             # Template de credenciais
+├── requirements.txt             # Dependências Python
+└── CLAUDE.md                    # Guia para o Claude Code
 ```
 
 ---
 
-## 📊 Modelagem de Dados (Camadas)
+## 📊 Arquitetura Medalhão
 
-### 🥉 Camada Bronze
-Representa o espelho das tabelas transacionais do Supabase. Materializada como **Views** para garantir que os dados estejam sempre atualizados sem custo extra de armazenamento.
+### 🥉 Bronze
+Views sobre as tabelas raw do Supabase. Sem transformações — apenas tipagem básica e limpeza mínima.
 
-### 🥈 Camada Silver
-Transforma as entidades do e-commerce em tabelas limpas. Exemplos de transformações:
-- Cálculo de receita total por item.
-- Extração de componentes de data (ano, mês, dia).
-- Categorização de faixas de preço (Premium, Médio, Básico).
+### 🥈 Silver
+Tabelas materializadas com lógica de negócio: cálculo de receita por item, extração de componentes de data, categorização de faixas de preço.
 
-### 🥇 Camada Gold
-Data Marts otimizados para KPIs de negócio:
-- **Sales:** Performance temporal de vendas e ticket médio.
-- **Customer Success:** Segmentação de clientes (VIP, Regular) baseada em LTV (Lifetime Value).
-- **Pricing:** Análise de competitividade comparando nossos preços com a concorrência.
+### 🥇 Gold — Data Marts
 
----
-
-## ⚙️ Como Executar o Projeto
-
-1. **Instale as dependências:**
-   ```bash
-   pip install dbt-postgres
-   ```
-
-2. **Configure seu `profiles.yml`:**
-   Configure a conexão com o banco do Supabase no arquivo local do dbt.
-
-3. **Verifique a conexão:**
-   ```bash
-   dbt debug
-   ```
-
-4. **Execute as transformações:**
-   ```bash
-   dbt run
-   ```
-
-5. **Gere a documentação:**
-   ```bash
-   dbt docs generate
-   dbt docs serve
-   ```
+| Modelo | Schema | Descrição |
+|--------|--------|-----------|
+| `vendas_temporais` | `public_gold_sales` | KPIs de vendas por período, categoria e estado |
+| `vendas_acumuladas_mes` | `public_gold_sales` | Receita acumulada mensal |
+| `clientes_segmentacao` | `public_gold` | Segmentação RFM: VIP, Regular, Ocasional |
+| `precos_competitividade` | `public_gold` | Comparativo de preços vs concorrentes |
 
 ---
 
-## 📝 Contribuição e Notas
-Este projeto foi desenvolvido com foco em boas práticas de engenharia de dados, utilizando variáveis dinâmicas no dbt para definição de thresholds de negócio (ex: limites de segmentação VIP) e testes automatizados.
+## ⚙️ Como Executar
+
+### 1. Configurar o dbt
+
+```bash
+# Instalar dbt
+pip install dbt-postgres
+
+# Configurar ~/.dbt/profiles.yml com as credenciais do Supabase
+dbt debug         # Testa a conexão
+dbt run           # Executa todas as transformações
+```
+
+### 2. Executar o Dashboard
+
+```bash
+# Ativar o ambiente virtual
+.venv\Scripts\activate
+
+# Instalar dependências (primeira vez)
+pip install -r requirements.txt
+
+# Configurar credenciais
+cp .llm\.env.example .llm\.env
+# Editar .llm\.env com a POSTGRES_URL do Supabase
+
+# Iniciar o dashboard
+python -m streamlit run .llm\app.py
+```
+
+Dashboard disponível em `http://localhost:8501`.
 
 ---
+
+## 📈 Dashboard — Páginas
+
+| Página | Perfil | Conteúdo |
+|--------|--------|----------|
+| 🛒 **Vendas** | Diretor Comercial | Receita, volume, sazonalidade, top produtos e estados |
+| 👥 **Clientes** | Customer Success | Segmentação, ticket médio, ranking e comportamento de compra |
+| 💰 **Pricing** | Diretor de Pricing | Competitividade vs concorrentes, alertas de preço e posicionamento |
+
+---
+
 **Desenvolvido por [Vanessa Prado](https://github.com/euvanessa-prado)** 👋
