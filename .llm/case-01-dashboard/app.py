@@ -138,7 +138,22 @@ def aplicar_labels(df: pd.DataFrame) -> pd.DataFrame:
 def renomear_colunas(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns={c: LABEL_COLUNAS.get(c, c) for c in df.columns})
 
-def kpi(col, label: str, value: str):
+def kpi(col, label: str, value: str, delta: float = None, delta_label: str = "vs ano anterior"):
+    if delta is not None:
+        cor_delta  = "#16A34A" if delta >= 0 else "#DC2626"
+        bg_delta   = "#F0FDF4" if delta >= 0 else "#FEF2F2"
+        arrow      = "▲" if delta >= 0 else "▼"
+        sign       = "+" if delta >= 0 else ""
+        delta_html = (
+            f'<span style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;'
+            f'background:{bg_delta};border-radius:4px;padding:2px 7px;">'
+            f'<span style="color:{cor_delta};font-size:0.78rem;font-weight:600">'
+            f'{arrow} {sign}{delta:.1f}%</span>'
+            f'<span style="color:#9CA3AF;font-size:0.72rem">{delta_label}</span>'
+            f'</span>'
+        )
+    else:
+        delta_html = ""
     col.markdown(f"""
 <div style="background:#F4F6F8;border:1.5px solid #D0D5DD;border-radius:8px;
 padding:16px 18px 18px 18px;box-shadow:none">
@@ -146,6 +161,7 @@ padding:16px 18px 18px 18px;box-shadow:none">
   display:block;margin-bottom:10px;line-height:1.2">{label}</span>
   <span style="color:#101828;font-size:2.25rem;font-weight:400;font-family:Inter,sans-serif;
   display:block;letter-spacing:-0.02em;line-height:1">{value}</span>
+  {delta_html}
 </div>""", unsafe_allow_html=True)
 
 def render_tabela(df: pd.DataFrame, badges: dict, progress: dict) -> str:
@@ -411,23 +427,31 @@ with st.sidebar:
 
 # ── Página: Vendas ─────────────────────────────────────────────────────────────
 
+def _delta(atual, anterior):
+    """Retorna variação percentual ou None se anterior == 0."""
+    if anterior and anterior != 0:
+        return (atual - anterior) / abs(anterior) * 100
+    return None
+
 def pagina_vendas():
     st.title("Vendas — Diretor Comercial")
 
-    df = get_data("SELECT * FROM public_gold_sales.vendas_temporais")
-    df["data_venda"] = pd.to_datetime(df["data_venda"])
+    df_all = get_data("SELECT * FROM public_gold_sales.vendas_temporais")
+    df_all["data_venda"] = pd.to_datetime(df_all["data_venda"])
 
     # ── Filtros
     with st.sidebar:
         st.markdown("### 🛒 Filtros — Vendas")
-        anos   = sorted(df["ano_venda"].dropna().unique().astype(int))
-        meses  = sorted(df["mes_venda"].dropna().unique().astype(int))
+        anos   = sorted(df_all["ano_venda"].dropna().unique().astype(int))
+        meses  = sorted(df_all["mes_venda"].dropna().unique().astype(int))
         dias   = ORDEM_SEMANA
 
         ano_sel  = st.selectbox("Ano", ["Todos"] + anos)
         mes_sel  = st.selectbox("Mês", ["Todos"] + meses)
         dia_sel  = st.multiselect("Dia da Semana", dias)
 
+    # ── Período atual
+    df = df_all.copy()
     if ano_sel != "Todos":
         df = df[df["ano_venda"] == ano_sel]
     if mes_sel != "Todos":
@@ -438,6 +462,21 @@ def pagina_vendas():
     if df.empty:
         st.warning("Nenhum dado encontrado para os filtros selecionados.")
         return
+
+    # ── Período anterior (YoY)
+    ano_atual = int(ano_sel) if ano_sel != "Todos" else int(df_all["ano_venda"].max())
+    ano_ant   = ano_atual - 1
+    df_prev   = df_all[df_all["ano_venda"] == ano_ant]
+    if mes_sel != "Todos":
+        df_prev = df_prev[df_prev["mes_venda"] == mes_sel]
+    if dia_sel:
+        df_prev = df_prev[df_prev["dia_semana_nome"].isin(dia_sel)]
+
+    prev_receita  = df_prev["receita_total"].sum()
+    prev_vendas   = df_prev["total_vendas"].sum()
+    prev_ticket   = prev_receita / prev_vendas if prev_vendas > 0 else 0
+    prev_clientes = df_prev.groupby("data_venda")["total_clientes_unicos"].max().sum() if not df_prev.empty else 0
+    prev_qtd      = df_prev["quantidade_total"].sum()
 
     # ── KPIs
     receita_total   = df["receita_total"].sum()
@@ -450,15 +489,15 @@ def pagina_vendas():
     dias_ativos     = df["data_venda"].nunique()
 
     c1, c2, c3, c4 = st.columns(4)
-    kpi(c1, "💵 Receita Total",      fmt_brl(receita_total))
-    kpi(c2, "🛒 Total de Vendas",    fmt_num(total_vendas))
-    kpi(c3, "🎯 Ticket Médio",       fmt_brl(ticket_medio))
-    kpi(c4, "👤 Clientes Únicos",    fmt_num(clientes_unicos))
+    kpi(c1, "💵 Receita Total",      fmt_brl(receita_total),  _delta(receita_total, prev_receita))
+    kpi(c2, "🛒 Total de Vendas",    fmt_num(total_vendas),   _delta(total_vendas, prev_vendas))
+    kpi(c3, "🎯 Ticket Médio",       fmt_brl(ticket_medio),   _delta(ticket_medio, prev_ticket))
+    kpi(c4, "👤 Clientes Únicos",    fmt_num(clientes_unicos), _delta(clientes_unicos, prev_clientes))
 
     st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
 
     c5, c6, c7, c8 = st.columns(4)
-    kpi(c5, "📦 Itens Vendidos",     fmt_num(qtd_total))
+    kpi(c5, "📦 Itens Vendidos",     fmt_num(qtd_total), _delta(qtd_total, prev_qtd))
     kpi(c6, "⚡ Receita Hora Pico",  fmt_brl(receita_hora_pico))
     kpi(c7, "🕐 Hora de Pico",       f"{hora_pico}h")
     kpi(c8, "📅 Dias com Vendas",    fmt_num(dias_ativos))
@@ -610,7 +649,6 @@ def pagina_clientes():
     receita_total   = df["receita_total"].sum()
     pct_vip_receita = (receita_vip / receita_total * 100) if receita_total > 0 else 0
     ticket_medio    = df["ticket_medio"].mean()
-    media_compras   = df["total_compras"].mean()
     estados_ativos  = df["estado"].nunique()
 
     c1, c2, c3, c4 = st.columns(4)
