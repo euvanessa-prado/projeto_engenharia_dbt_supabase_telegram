@@ -20,8 +20,8 @@
 | # | Schema | Tabela | Domínio | Objetivo |
 |---|---|---|---|---|
 | 1 | `public_gold_sales` | `vendas_temporais` | Vendas | Métricas de vendas agregadas por dia/hora |
-| 2 | `public_gold_cs` | `clientes_segmentacao` | Customer Success | Segmentação de clientes por receita (RFM simplificado) |
-| 3 | `public_gold_pricing` | `precos_competitividade` | Pricing | Análise de competitividade de preços vs concorrentes |
+| 2 | `public_gold` | `clientes_segmentacao` | Customer Success | Segmentação de clientes por receita (RFM simplificado) |
+| 3 | `public_gold` | `precos_competitividade` | Pricing | Análise de competitividade de preços vs concorrentes |
 
 ### Fluxo de dados (Lineage)
 

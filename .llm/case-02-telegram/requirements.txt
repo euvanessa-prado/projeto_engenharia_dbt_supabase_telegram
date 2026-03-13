@@ -1,0 +1,8 @@
+anthropic
+python-telegram-bot==20.7
+sqlalchemy
+psycopg2-binary
+pandas
+tabulate
+python-dotenv
+pyyaml
