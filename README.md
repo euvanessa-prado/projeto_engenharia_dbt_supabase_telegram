@@ -82,6 +82,11 @@ Dashboard self-service com 3 páginas para os diretores do e-commerce.
 | **Clientes** | Customer Success | Segmentação, ticket médio, ranking e distribuição por estado |
 | **Pricing** | Diretor de Pricing | Competitividade vs concorrentes, alertas de preço, posicionamento |
 
+![Dashboard Vendas](assets/DASHBORD1.png)
+![Dashboard Clientes](assets/DASHBOARD%202.png)
+![Dashboard Pricing](assets/DASHBORD%203.png)
+![Dashboard Overview](assets/DASHBOARD2.png)
+
 ### Executar localmente
 
 ```bash
